@@ -1,4 +1,4 @@
-## Setup with Docker
+## Setup with Docker | (Recommended)
 
 1. Start **Docker Desktop** and wait until it says the engine is running (`docker version` must show a *Server*).
 2. Create the settings file:
