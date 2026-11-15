@@ -19,7 +19,7 @@
 More users: `docker compose run --rm rag-app python manage_users.py add alice --role viewer`
 (also `list`, `passwd`, `remove`).
 
-## Local development
+## Run locally | (Without Docker)
 
 ```bash
 pip install -r requirements-dev.txt
