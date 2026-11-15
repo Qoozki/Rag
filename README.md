@@ -6,6 +6,25 @@
    Copy-Item .env.example .env
    notepad .env
    ```
+
+   ```
+   # Copy to .env and fill in. Do not commit .env.
+   # JWT_SECRET: at least 32 random characters. Generate with:
+   #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+   JWT_SECRET=admin123456789123456789123456789
+   # First start only: creates user "admin" (and "viewer") if no users exist yet. Min 10 characters.
+   BOOTSTRAP_ADMIN_PASSWORD=admin123456789123456789
+   BOOTSTRAP_VIEWER_PASSWORD=admin123456789123456789
+   # Optional overrides (defaults in config.py):
+   # ACCESS_TOKEN_MINUTES=60
+   # RATE_LIMIT_REQUESTS=3
+   # RATE_LIMIT_WINDOW_SECONDS=600
+   # TOKEN_BUDGET=10000
+   # RELEVANCE_MIN_SCORE=0.25
+   # LOG_LEVEL=INFO
+
+   ```
+   
    * `JWT_SECRET`: 32+ random characters (`python -c "import secrets; print(secrets.token_urlsafe(48))"`).
    * `BOOTSTRAP_ADMIN_PASSWORD` and `BOOTSTRAP_VIEWER_PASSWORD`: 10+ characters each. They create the
      accounts **`admin`** and **`viewer`** on the first start. Afterwards delete both lines.
