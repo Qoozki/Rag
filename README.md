@@ -7,6 +7,7 @@
    notepad .env
    ```
 
+   .env.example
    ```notepad
    # Copy to .env and fill in. Do not commit .env.
    # JWT_SECRET: at least 32 random characters. Generate with:
@@ -28,7 +29,7 @@
    * `JWT_SECRET`: 32+ random characters (`python -c "import secrets; print(secrets.token_urlsafe(48))"`).
    * `BOOTSTRAP_ADMIN_PASSWORD` and `BOOTSTRAP_VIEWER_PASSWORD`: 10+ characters each. They create the
      accounts **`admin`** and **`viewer`** on the first start. Afterwards delete both lines.
-3. Put your PDF/DOCX files in `docs/` (`mkdir docs`), then:
+4. Put your PDF/DOCX files in `docs/` (`mkdir docs`), then:
    ```powershell
    docker compose up --build
    ```
