@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Rag System For RealSoft</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px auto; background: #121212; color: #fff; max-width: 900px; }
+            .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+            h2 { margin: 0; }
+            .user-info { font-size: 0.9rem; color: #aaa; }
+            .logout-btn { background: #333; color: #ccc; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-left: 10px; width: auto; }
+            .panel { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; }
+            #adminPanel { display: none; border-color: #007acc; }
+            .panel h3 { margin: 0 0 10px; color: #007acc; font-size: 1rem; }
+            .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+            .row label { font-size: 0.8rem; color: #aaa; }
+            select, input[type="text"], input[type="number"], input[type="date"] { padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: #fff; }
+            .container { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+            .chat-section { display: flex; flex-direction: column; }
+            #chat { border: 1px solid #333; height: 380px; padding: 15px; overflow-y: auto; background: #1e1e1e; border-radius: 8px; font-family: monospace; white-space: pre-wrap; }
+            .input-group { display: flex; gap: 10px; margin-top: 10px; }
+            #messageInput { flex: 1; padding: 12px; }
+            input:disabled { background: #181818; border-color: #333; color: #666; cursor: not-allowed; }
+            button { width: 100px; padding: 12px; background: #007acc; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+            button:hover { background: #005999; }
+            button:disabled { background: #333; cursor: not-allowed; }
+            #cooldownBanner { display: none; background: #3a1c1c; border: 1px solid #ff4d4d; color: #ff9999; padding: 10px 15px; border-radius: 6px; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; }
+            .stats-sidebar { border: 1px solid #333; background: #1e1e1e; border-radius: 8px; padding: 20px; height: 380px; box-sizing: border-box; }
+            .stats-sidebar h3 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #333; padding-bottom: 10px; color: #007acc; }
+            .stat-box { margin-top: 20px; background: #282828; padding: 15px; border-radius: 6px; border-left: 4px solid #007acc; }
+            .stat-label { font-size: 0.85rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+            .stat-value { font-size: 2rem; font-weight: bold; margin-top: 5px; font-family: monospace; }
+            .warning-red { color: #ff4d4d !important; }
+            #adminStatus, #filterStatus { margin-top: 8px; font-size: 0.85rem; color: #aaa; }
+        </style>
+    </head>
+    <body>
+        <div class="header-bar">
+            <h2>RAG Interactive Stream</h2>
+            <div class="user-info">
+                User: <strong id="userDisplay">...</strong> (<span id="roleDisplay">...</span>)
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div id="adminPanel" class="panel">
+            <h3>Admin Tools: Documents &amp; Index</h3>
+            <div class="row">
+                <input type="file" id="fileUpload" accept=".pdf,.docx" />
+                <button onclick="uploadDocument()" style="width:auto">Upload</button>
+                <button onclick="reindex(false)" style="width:auto">Sync Index</button>
+                <button onclick="reindex(true)" style="width:auto; background:#d9534f">Full Rebuild</button>
+            </div>
+            <div class="row" style="margin-top:8px">
+                <select id="deleteSelect"></select>
+                <button onclick="deleteDocument()" style="width:auto; background:#d9534f">Delete Document</button>
+            </div>
+            <div id="adminStatus"></div>
+        </div>
+
+        <div class="panel">
+            <h3>Search filters</h3>
+            <div class="row">
+                <label>Document <select id="fFile"><option value="">All</option></select></label>
+                <label>Type <select id="fType"><option value="">All</option><option>pdf</option><option>docx</option></select></label>
+                <label>Language <select id="fLang"><option value="">All</option><option value="en">English</option><option value="ar">Arabic</option></select></label>
+                <label>Pages <input type="number" id="fFrom" min="1" style="width:60px" placeholder="from"> - <input type="number" id="fTo" min="1" style="width:60px" placeholder="to"></label>
+            </div>
+            <div class="row" style="margin-top:8px">
+                <label>Modified after <input type="date" id="fAfter"></label>
+                <label>before <input type="date" id="fBefore"></label>
+                <button onclick="applyFilters()" style="width:auto">Apply</button>
+                <button onclick="clearFilters()" style="width:auto; background:#333">Clear</button>
+            </div>
+            <div id="filterStatus"></div>
+        </div>
+
+        <div class="container">
+            <div class="chat-section">
+                <div id="cooldownBanner">⚠️ Rate limit reached! Please wait <span id="timerText">0</span>s before asking again.</div>
+                <div id="chat"></div>
+                <div class="input-group">
+                    <input type="text" id="messageInput" placeholder="Type here..." autofocus autocomplete="off"/>
+                    <button id="sendBtn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+            <div class="stats-sidebar">
+                <h3>Usage Metrics</h3>
+                <div class="stat-box"><div class="stat-label">Total Tokens Used</div><div class="stat-value" id="totalTokens">0</div></div>
+                <div class="stat-box"><div class="stat-label">Remainder Tokens Left</div><div class="stat-value" id="remainder">10000</div></div>
+            </div>
+        </div>
+
+        <script>
+            const token = localStorage.getItem("token");
+            if (!token) window.location.href = "/login";
+            document.getElementById("userDisplay").innerText = localStorage.getItem("username") || "User";
+            const role = localStorage.getItem("role") || "viewer";
+            document.getElementById("roleDisplay").innerText = role;
+            if (role === "admin") document.getElementById("adminPanel").style.display = "block";
+
+            function logout() { localStorage.clear(); window.location.href = "/login"; }
+
+            const chat = document.getElementById("chat");
+            const input = document.getElementById("messageInput");
+            const sendBtn = document.getElementById("sendBtn");
+            const cooldownBanner = document.getElementById("cooldownBanner");
+            const timerText = document.getElementById("timerText");
+            let cooldownInterval = null;
+            let answerStartText = "";
+
+            // The token is sent as the first message (not in the URL, so it never lands in access logs).
+            const proto = window.location.protocol === "https:" ? "wss" : "ws";
+            const ws = new WebSocket(`${proto}://${window.location.host}/ws/chat`);
+            ws.onopen = () => ws.send(JSON.stringify({ type: "auth", token }));
+            ws.onclose = (e) => {
+                if (e.code === 1008) {
+                    chat.append("\n[SESSION INVALID OR EXPIRED] Redirecting to login...\n");
+                    setTimeout(logout, 1500);
+                } else {
+                    chat.append(`\n[CONNECTION CLOSED] code=${e.code}. Refresh the page.\n`);
+                }
+                input.disabled = true; sendBtn.disabled = true;
+            };
+            ws.onerror = () => chat.append("\n[CONNECTION ERROR]\n");
+
+            ws.onmessage = (event) => {
+                const message = event.data;
+                if (message.startsWith("METADATA:")) {
+                    const data = JSON.parse(message.slice(9));
+                    if (data.tokens) updateTokenStats(data.tokens);
+                    return;
+                }
+                if (message.startsWith("RATE_LIMIT:")) {
+                    startCooldownTimer(JSON.parse(message.slice(11)).retry_after);
+                    return;
+                }
+                if (message === "ANSWER_START:") { answerStartText = chat.textContent; return; }
+                if (message === "ANSWER_RESET:") { chat.textContent = answerStartText; return; }
+                if (message === "ANSWER_END:") return;
+                chat.append(message);
+                chat.scrollTop = chat.scrollHeight;
+            };
+
+            // Counter shown to the user; the server enforces the real allowance per account.
+            let totalTokenCount = 0;
+            function updateTokenStats(count) {
+                totalTokenCount += count;
+                const remaining = 10000 - totalTokenCount;
+                const el = document.getElementById("remainder");
+                document.getElementById("totalTokens").innerText = totalTokenCount;
+                el.innerText = Math.max(0, remaining);
+                el.classList.toggle("warning-red", remaining <= 500);
+                if (remaining <= 0) { input.disabled = true; input.placeholder = "Token limit reached."; }
+            }
+
+            function startCooldownTimer(seconds) {
+                input.disabled = true; sendBtn.disabled = true;
+                cooldownBanner.style.display = "block";
+                let left = seconds; timerText.innerText = left;
+                if (cooldownInterval) clearInterval(cooldownInterval);
+                cooldownInterval = setInterval(() => {
+                    left -= 1; timerText.innerText = left;
+                    if (left <= 0) {
+                        clearInterval(cooldownInterval);
+                        cooldownBanner.style.display = "none";
+                        input.disabled = false; sendBtn.disabled = false; input.focus();
+                    }
+                }, 1000);
+            }
+
+            function sendMessage() {
+                const text = input.value.trim();
+                if (!text || input.disabled) return;
+                if (ws.readyState !== WebSocket.OPEN) { chat.append("\n[Not connected]\n"); return; }
+                // Slash commands (/reset, /filter ...) go as-is; questions as JSON.
+                ws.send(text.startsWith("/") ? text : JSON.stringify({ type: "question", text }));
+                input.value = "";
+            }
+            input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+
+            async function api(path, options = {}) {
+                const res = await fetch(path, { ...options, headers: { ...(options.headers || {}), "Authorization": `Bearer ${token}` } });
+                if (res.status === 401) { logout(); throw new Error("Session expired"); }
+                const data = await res.json().catch(() => ({}));
+                return { ok: res.ok, data };
+            }
+
+            async function loadDocuments() {
+                try {
+                    const { ok, data } = await api("/documents");
+                    if (!ok) return;
+                    for (const id of ["fFile", "deleteSelect"]) {
+                        const sel = document.getElementById(id);
+                        sel.innerHTML = id === "fFile" ? '<option value="">All</option>' : "";
+                        for (const d of data.documents) {
+                            const o = document.createElement("option");
+                            o.value = id === "fFile" ? d.file_name : d.source_id;
+                            o.textContent = d.source_id;
+                            sel.appendChild(o);
+                        }
+                    }
+                } catch (e) {}
+            }
+            function applyFilters() {
+                const v = (id) => document.getElementById(id).value;
+                const filters = { file: v("fFile"), type: v("fType"), lang: v("fLang"),
+                                  page_from: v("fFrom"), page_to: v("fTo"), after: v("fAfter"), before: v("fBefore") };
+                ws.send(JSON.stringify({ type: "filters", filters }));
+                document.getElementById("filterStatus").innerText = "Filters sent (confirmation appears in the chat).";
+            }
+            function clearFilters() {
+                for (const id of ["fFile", "fType", "fLang", "fFrom", "fTo", "fAfter", "fBefore"]) document.getElementById(id).value = "";
+                ws.send(JSON.stringify({ type: "filters", filters: {} }));
+            }
+
+            const adminStatus = () => document.getElementById("adminStatus");
+            async function uploadDocument() {
+                const f = document.getElementById("fileUpload").files[0];
+                if (!f) return alert("Select a file first!");
+                const form = new FormData(); form.append("file", f);
+                adminStatus().innerText = "Uploading...";
+                const { data } = await api("/admin/upload", { method: "POST", body: form });
+                adminStatus().innerText = data.message || data.detail;
+            }
+            async function reindex(full) {
+                if (full && !confirm("Re-embed ALL documents? This can take a while.")) return;
+                adminStatus().innerText = full ? "Rebuilding index..." : "Syncing index...";
+                const { data } = await api(`/admin/reindex?full=${full}`, { method: "POST" });
+                adminStatus().innerText = data.message || data.detail;
+                loadDocuments();
+            }
+            async function deleteDocument() {
+                const id = document.getElementById("deleteSelect").value;
+                if (!id || !confirm(`Delete ${id}?`)) return;
+                const { data } = await api(`/admin/documents/${encodeURI(id)}`, { method: "DELETE" });
+                adminStatus().innerText = data.message || data.detail;
+                loadDocuments();
+            }
+            loadDocuments();
+        </script>
+    </body>
+</html>
