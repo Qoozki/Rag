@@ -7,14 +7,14 @@
    notepad .env
    ```
 
-   ```
+   ```notepad
    # Copy to .env and fill in. Do not commit .env.
    # JWT_SECRET: at least 32 random characters. Generate with:
    #   python -c "import secrets; print(secrets.token_urlsafe(48))"
-   JWT_SECRET=admin123456789123456789123456789
+   JWT_SECRET=
    # First start only: creates user "admin" (and "viewer") if no users exist yet. Min 10 characters.
-   BOOTSTRAP_ADMIN_PASSWORD=admin123456789123456789
-   BOOTSTRAP_VIEWER_PASSWORD=admin123456789123456789
+   BOOTSTRAP_ADMIN_PASSWORD=
+   BOOTSTRAP_VIEWER_PASSWORD=
    # Optional overrides (defaults in config.py):
    # ACCESS_TOKEN_MINUTES=60
    # RATE_LIMIT_REQUESTS=3
