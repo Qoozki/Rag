@@ -1,12 +1,3 @@
-"""
-Metadata filtering. One validated, canonical filter dict is used everywhere
-(WebSocket JSON, the /filter chat command, retrieval, neighbour expansion).
-
-Canonical keys:
-  file_name: [str]     file_type: [pdf|docx]     language: [ar|en]
-  page_from / page_to: int (PDF pages; DOCX chunks have no page number so a page filter excludes them)
-  modified_after: epoch seconds (inclusive)      modified_before: epoch seconds (exclusive)
-"""
 import shlex
 from datetime import datetime, timedelta, timezone
 
